@@ -44,23 +44,23 @@ app.get('/api/books', (req, res) => {
     });
 });
 
-app.get('/api/books/search', async (req, res) => {
-  const searchTerm = req.query.term; 
-  const regexSearchTerm = searchTerm ? searchTerm.toString() : ''
-  const db = client.db(dbName);
-  const booksCollection = db.collection('books');
-
-  booksCollection.find({ title: { $regex: regexSearchTerm, $options: 'i' } })
-    .toArray((err, results) => {
-      if (err) {
-        console.error('Error searching books:', err);
-        res.status(500).send('Internal Server Error');
-        return;
-      }
-
-      res.json(results); 
+app.get('/api/books/search', async(req, res) => {
+  const query = req.query.query;
+  try{
+    let searchfind =await Book.find().exec();
+    searchfind = searchfind.filter((book) => {
+      return book.name.toLowerCase().includes(query.toLowerCase()) || book.author.toLowerCase().includes(query.toLowerCase());
     });
+
+    res.json(searchfind);
+    }catch(e){
+      console.log(e);
+      res.status(500).json({ error: 'Failed to find searched item'});
+    }
+
 });
+
+
 
 app.post('/api/wishlist',async (req, res) => {
   console.log(req.body);

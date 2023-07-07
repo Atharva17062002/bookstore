@@ -1,6 +1,9 @@
 import 'dart:convert';
 
+import 'package:bookstore/screens/bookStore.dart';
+import 'package:bookstore/screens/home_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../Providers/UserProvider.dart';
@@ -22,24 +25,27 @@ class _SearchPageState extends State<SearchPage> {
   @override
   void initState() {
     super.initState();
-    searchBooks(_searchController.text);
+    _searchBooks();
   }
 
-  List<Book> searchResults = [];
+  List<Book> _books = [];
 
-  Future<void> searchBooks(String query) async {
-    try {
-      final response = await http.get(Uri.parse('http://192.168.1.101:3000/api/books/search?query=$query'));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          searchResults = List<Book>.from(data.map((book) => Book.fromJson(book)));
-        });
-      } else {
-        print('Error searching books: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error searching books: $e');
+  void _searchBooks() async {
+    String query = _searchController.text;
+
+    var response = await http.get(Uri.parse('http://192.168.1.101:3000/api/books/search?query=$query'));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> booksData = jsonDecode(response.body);
+      setState(() {
+        _books = booksData.map((bookData) => Book(
+          id: bookData['_id']??'n',
+          title: bookData['name']??'v',
+          author: bookData['author']??'vv',
+          imageUrl: bookData['image']??'v',
+          price: bookData['price']??'200',
+        ),).toList();
+      },);
     }
   }
   @override
@@ -47,6 +53,7 @@ class _SearchPageState extends State<SearchPage> {
     final user = Provider.of<UserProvider>(context).user;
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(onPressed: () {Navigator.push(context, MaterialPageRoute(builder: (context)=> BookstoreApp()));}, icon: Icon(AntDesign.left),),
         title: const Text('Search Books'),
       ),
       body: Column(
@@ -55,7 +62,7 @@ class _SearchPageState extends State<SearchPage> {
             controller: _searchController,
             onChanged: (query) {
               setState(() {
-                searchBooks(query);
+                _searchBooks();
               });
             },
             decoration: const InputDecoration(
@@ -64,9 +71,9 @@ class _SearchPageState extends State<SearchPage> {
           ),
           Expanded(
             child: ListView.builder(
-              itemCount: searchResults.length,
+              itemCount: _books.length,
               itemBuilder: (context, index) {
-                final book = searchResults[index];
+                final book = _books[index];
                 return ListTile(
                   title: Text(book.title),
                   subtitle: Text(book.author),
